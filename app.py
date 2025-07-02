@@ -68,8 +68,10 @@ def register():
 def login():
     error = None
     if request.method == 'POST':
-        dni = request.form['username']  # El form usa username, pero es el DNI
+        dni = request.form['dni']  # Cambiá el form para que el name sea dni
         password = request.form['password']
+
+        print("🎯 Intentando login con:", dni, password)  # Log para debug
 
         user = buscar_usuario_db(dni, password)
         if user:
