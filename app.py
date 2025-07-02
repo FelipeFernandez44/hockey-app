@@ -102,27 +102,28 @@ def logout():
 def dashboard():
     if 'username' not in session:
         return redirect(url_for('login'))
-    
+
     print(f"🎯 Entrando al dashboard de {session.get('username')}")
 
-    equipo = session['club']
-    ruta_excel = "data/Fixtures Unificados listo.xlsx"
+    # equipo = session['club']
+    # ruta_excel = "data/Fixtures Unificados listo.xlsx"
 
-    print("🎯 Buscando fixture y posiciones")
+    # print("🎯 Buscando fixture y posiciones")
 
-    partidos = buscar_fixture_equipo(ruta_excel, equipo, "2025", "femenino", "primera")
-    posiciones = buscar_posiciones_equipo(ruta_excel, equipo, "2025", "primera")
+    # partidos = buscar_fixture_equipo(ruta_excel, equipo, "2025", "femenino", "primera")
+    # posiciones = buscar_posiciones_equipo(ruta_excel, equipo, "2025", "primera")
 
-    next_match = partidos[0] if partidos else {"rival": "N/A", "fecha": "N/A"}
+    # next_match = partidos[0] if partidos else {"rival": "N/A", "fecha": "N/A"}
 
     return render_template(
         'dashboard.html',
         username=session['nombre'],
-        club=equipo,
+        club=session['club'],
         plan=session['plan'],
-        next_match=next_match,
-        positions=posiciones
+        next_match={"rival": "N/A", "fecha": "N/A"},
+        positions=[]
     )
+
 
 
 @app.route('/')
