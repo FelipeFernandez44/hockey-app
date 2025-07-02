@@ -1,32 +1,65 @@
 from flask import Flask, render_template, request, redirect, url_for, session
-import sqlite3
+import json
+import os
 from utils.leer_excel import (
     buscar_fixture_equipo,
-    buscar_posiciones_equipo,
-    buscar_goleadoras_equipo,
-    obtener_equipos_disponibles
+    buscar_posiciones_equipo
 )
 
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta'
+USUARIOS_FILE = 'data/usuarios.json'
 
-# Base de datos
-def get_db_connection():
-    conn = sqlite3.connect('db/hockey.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+def cargar_usuarios():
+    if not os.path.exists(USUARIOS_FILE):
+        return []
+    with open(USUARIOS_FILE, 'r') as f:
+        return json.load(f)
 
-# Login
+def guardar_usuarios(usuarios):
+    with open(USUARIOS_FILE, 'w') as f:
+        json.dump(usuarios, f, indent=2)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    error = None
+    equipos = ['Everton', 'Club A', 'Club B']  # Podés traer esto de leer_excel si querés
+    planes = ['gratis', 'pro', 'club']
+
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        club = request.form['club']
+        plan = request.form['plan']
+
+        usuarios = cargar_usuarios()
+        if any(u['username'] == username for u in usuarios):
+            error = 'El usuario ya existe'
+        else:
+            usuarios.append({'username': username, 'password': password, 'club': club, 'plan': plan})
+            guardar_usuarios(usuarios)
+            return redirect(url_for('login'))
+
+    return render_template('register.html', error=error, equipos=equipos, planes=planes)
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
     if request.method == 'POST':
-        if request.form['username'] == 'admin' and request.form['password'] == '1234':
-            session['username'] = request.form['username']
-            session['club'] = 'Everton de La Plata'
+        username = request.form['username']
+        password = request.form['password']
+
+        usuarios = cargar_usuarios()
+        user = next((u for u in usuarios if u['username'] == username and u['password'] == password), None)
+
+        if user:
+            session['username'] = user['username']
+            session['club'] = user['club']
+            session['plan'] = user['plan']
             return redirect(url_for('dashboard'))
         else:
             error = 'Usuario o contraseña incorrectos'
+
     return render_template('login.html', error=error)
 
 @app.route('/logout')
@@ -34,90 +67,28 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-@app.route('/')
-def index():
-    return redirect(url_for('login'))
-
-# Dashboard
 @app.route('/dashboard')
 def dashboard():
     if 'username' not in session:
         return redirect(url_for('login'))
-    
-    # Ejemplo de datos dinámicos (después lo pasamos a DB / Excel)
-    next_match = {
-        "rival": "Club A",
-        "fecha": "10/07/2025 16:00"
-    }
-    positions = [
-        {"pos": 1, "equipo": "Everton", "pts": 25},
-        {"pos": 2, "equipo": "Club A", "pts": 22},
-        {"pos": 3, "equipo": "Club B", "pts": 20}
-    ]
+
+    equipo = session['club']
+    ruta_excel = "data/Fixtures Unificados listo.xlsx"
+
+    partidos = buscar_fixture_equipo(ruta_excel, equipo, "2025", "femenino", "primera")
+    posiciones = buscar_posiciones_equipo(ruta_excel, equipo, "2025", "primera")
+
+    next_match = partidos[0] if partidos else {"rival": "N/A", "fecha": "N/A"}
 
     return render_template(
         'dashboard.html',
         username=session['username'],
-        club=session['club'],
+        club=equipo,
+        plan=session['plan'],
         next_match=next_match,
-        positions=positions
+        positions=posiciones
     )
 
-# Jugadoras
-@app.route('/jugadoras')
-def jugadoras():
-    if 'username' not in session:
-        return redirect(url_for('login'))
-    # Por ahora placeholder
-    return "<h1>Listado de jugadoras (en construcción)</h1>"
-
-# Entrenamientos
-@app.route('/entrenamientos')
-def entrenamientos():
-    if 'username' not in session:
-        return redirect(url_for('login'))
-    return "<h1>Listado de entrenamientos (en construcción)</h1>"
-
-# Fixture
-@app.route('/fixture')
-def fixture():
-    if 'username' not in session:
-        return redirect(url_for('login'))
-    return "<h1>Fixture del club (en construcción)</h1>"
-
-# Fixture desde Excel
-@app.route('/fixture_excel')
-def ver_fixture_excel():
-    equipo = request.args.get("equipo", "").strip()
-    anio = request.args.get("anio", "").strip()
-    genero = request.args.get("genero", "ambos").strip().lower()
-    categoria = request.args.get("categoria", "todas").strip()
-
-    ruta = "data/Fixtures Unificados listo.xlsx"
-    partidos = []
-    posiciones = []
-    goleadoras = []
-
-    if equipo and anio:
-        partidos = buscar_fixture_equipo(ruta, equipo, anio, genero, categoria)
-        posiciones = buscar_posiciones_equipo(ruta, equipo, anio, categoria)
-        torneo = partidos[0]['torneo'] if partidos else None
-        zona = partidos[0]['zona'] if partidos else None
-        goleadoras = buscar_goleadoras_equipo(ruta, equipo, anio, categoria, torneo, zona)
-
-    equipos_disponibles = obtener_equipos_disponibles(ruta)
-
-    return render_template(
-        "fixture_excel.html",
-        equipo=equipo,
-        anio=anio,
-        genero=genero,
-        categoria=categoria,
-        partidos=partidos,
-        posiciones=posiciones,
-        goleadoras=goleadoras,
-        equipos_disponibles=equipos_disponibles
-    )
-
-if __name__ == '__main__':
-    app.run(debug=True)
+@app.route('/')
+def index():
+    return redirect(url_for('login'))
