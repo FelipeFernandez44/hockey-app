@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Jugadora</title>
+</head>
+<body>
+    <h1>✏️ Editar Jugadora</h1>
+    <form method="post">
+        Nombre: <input type="text" name="nombre" value="{{ jugadora.nombre }}"><br>
+        DNI: <input type="text" name="dni" value="{{ jugadora.dni }}"><br>
+        Teléfono: <input type="text" name="telefono" value="{{ jugadora.telefono }}"><br>
+        Fecha de nacimiento: <input type="date" name="fecha_nac" value="{{ jugadora.fecha_nac }}"><br>
+        Número: <input type="text" name="numero" value="{{ jugadora.numero }}"><br>
+        Posición: <input type="text" name="posicion" value="{{ jugadora.posicion }}"><br>
+        Categoría: <input type="text" name="categoria" value="{{ jugadora.categoria }}"><br><br>
+
+        <button type="submit">Guardar cambios</button>
+    </form>
+    <a href="/jugadoras">⬅ Volver a Jugadoras</a>
+</body>
+</html>

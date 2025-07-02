@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Entrenamiento</title>
+</head>
+<body>
+    <h1>✏️ Editar Entrenamiento</h1>
+
+    <form method="post">
+        <label>📅 Fecha:</label><br>
+        <input type="date" name="fecha" value="{{ entrenamiento.fecha }}"><br><br>
+
+        <label>🏑 Categoría:</label><br>
+        <input type="text" name="categoria" value="{{ entrenamiento.categoria }}"><br><br>
+
+        <button type="submit">💾 Guardar cambios</button>
+        <a href="/entrenamientos">Cancelar</a>
+    </form>
+</body>
+</html>

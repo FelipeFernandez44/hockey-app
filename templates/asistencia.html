@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Asistencia - {{ entrenamiento.fecha }} ({{ entrenamiento.categoria }})</title>
+</head>
+<body>
+    <h1>📝 Asistencia - {{ entrenamiento.fecha }} ({{ entrenamiento.categoria }})</h1>
+    
+    <form method="post">
+        <ul>
+        {% for j in jugadoras %}
+            <li>
+                <input type="checkbox" name="presentes" value="{{ j.id }}" id="jugadora_{{ j.id }}">
+                <label for="jugadora_{{ j.id }}">{{ j.nombre }} (#{{ j.numero }})</label>
+                <input type="hidden" name="jugadora_ids" value="{{ j.id }}">
+            </li>
+        {% endfor %}
+        </ul>
+        <button type="submit">💾 Guardar asistencia</button>
+    </form>
+
+    <a href="/entrenamientos">⬅ Volver a la lista</a>
+</body>
+</html>

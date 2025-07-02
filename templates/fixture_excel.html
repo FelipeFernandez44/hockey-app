@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>📅 Fixture desde Excel</title>
+</head>
+<body>
+    <h1>📅 Fixture desde Excel</h1>
+
+    <form method="get">
+        <label>Equipo:</label>
+        <input list="equipos" name="equipo" value="{{ equipo }}">
+        <datalist id="equipos">
+            {% for e in equipos_disponibles %}
+                <option value="{{ e }}">
+            {% endfor %}
+        </datalist>
+
+        <label>Año:</label>
+        <input type="text" name="anio" value="{{ anio }}">
+
+        <label>Género:</label>
+        <select name="genero">
+            <option value="ambos" {% if genero == 'ambos' %}selected{% endif %}>Ambos</option>
+            <option value="damas" {% if genero == 'damas' %}selected{% endif %}>Damas</option>
+            <option value="caballeros" {% if genero == 'caballeros' %}selected{% endif %}>Caballeros</option>
+        </select>
+
+        <label>categoria:</label>
+        <select name="categoria">
+            <option value="todas" {% if categoria == 'todas' %}selected{% endif %}>Todas</option>
+            <option value="Primera" {% if categoria == 'Primera' %}selected{% endif %}>Primera</option>
+            <option value="Intermedia" {% if categoria == 'Intermedia' %}selected{% endif %}>Intermedia</option>
+            <option value="5ta" {% if categoria == '5ta' %}selected{% endif %}>5ta</option>
+            <option value="6ta" {% if categoria == '6ta' %}selected{% endif %}>6ta</option>
+            <option value="7ma" {% if categoria == '7ma' %}selected{% endif %}>7ma</option>
+        </select>
+
+
+        <button type="submit">Buscar</button>
+    </form>
+
+    {% if partidos %}
+        <h2>Partidos de {{ equipo.upper() }} en {{ anio }}</h2>
+        <table border="1">
+            <tr>
+                <th>Fecha</th>
+                <th>categoria</th>
+                <th>Torneo</th>
+                <th>Zona</th>
+                <th>Ronda</th>
+                <th>Rol</th>
+                <th>Rival</th>
+                <th>Resultado</th>
+            </tr>
+            {% for p in partidos %}
+                <tr>
+                    <td>{{ p.fecha_torneo }}</td>
+                    <td>{{ p.categoría }}</td>
+                    <td>{{ p.torneo }}</td>
+                    <td>{{ p.zona }}</td>
+                    <td>{{ p.ronda }}</td>
+                    <td>{{ p.rol }}</td>
+                    <td>{{ p.rival }}</td>
+                    <td>{{ p.resultado }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% elif equipo and anio %}
+        <p>❌ No se encontraron partidos.</p>
+    {% endif %}
+
+    {% if posiciones %}
+    <h2>📊 Tabla de Posiciones</h2>
+    <table border="1">
+        <tr>
+            <th>Pos</th><th>Equipo</th><th>PJ</th><th>PG</th><th>PE</th><th>PP</th><th>GF</th><th>GC</th><th>DG</th><th>Pts</th>
+        </tr>
+        {% for p in posiciones %}
+        <tr>
+            <td>{{ p.posiciones }}</td><td>{{ p.equipos }}</td><td>{{ p.jugados }}</td>
+            <td>{{ p.ganados }}</td><td>{{ p.empatados }}</td><td>{{ p.perdidos }}</td>
+            <td>{{ p.gf }}</td><td>{{ p.gc }}</td><td>{{ p['dif gol'] }}</td><td>{{ p.ptos }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+{% endif %}
+
+{% if goleadoras %}
+    <h2>⚽ Goleadoras</h2>
+    <table border="1">
+        <tr>
+            <th>Nro</th><th>Nombre</th><th>Club</th><th>Goles</th>
+        </tr>
+        {% for g in goleadoras %}
+        <tr>
+            <td>{{ g.nro }}</td><td>{{ g.nombre }}</td><td>{{ g.club }}</td><td>{{ g.goles }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+{% endif %}
+
+</body>
+</html>

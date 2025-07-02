@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Nuevo Entrenamiento</title>
+</head>
+<body>
+    <h1>📅 Cargar nuevo entrenamiento</h1>
+
+    <form method="post">
+        <label for="fecha">📆 Fecha:</label>
+        <input type="date" name="fecha" id="fecha" required><br><br>
+
+        <label for="categoria">🏑 Categoría:</label>
+        <select name="categoria" id="categoria" required>
+            <option value="Primera">Primera</option>
+            <option value="Intermedia">Intermedia</option>
+            <option value="Quinta">Quinta</option>
+            <option value="Sexta">Sexta</option>
+            <option value="Séptima">Séptima</option>
+            <option value="Octava">Octava</option>
+        </select><br><br>
+
+        <button type="submit">💾 Guardar entrenamiento</button>
+    </form>
+
+    <a href="/entrenamientos">⬅ Volver a la lista</a>
+</body>
+</html>

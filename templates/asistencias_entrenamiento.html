@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Asistencias - {{ entrenamiento.fecha }}</title>
+</head>
+<body>
+    <h1>📋 Asistencias del {{ entrenamiento.fecha }} ({{ entrenamiento.categoria }})</h1>
+
+    {% if asistencias %}
+        <table border="1" cellpadding="5">
+            <tr>
+                <th>Nombre</th>
+                <th>Número</th>
+                <th>Posición</th>
+                <th>¿Presente?</th>
+            </tr>
+            {% for a in asistencias %}
+            <tr>
+                <td>{{ a.nombre }}</td>
+                <td>{{ a.numero }}</td>
+                <td>{{ a.posicion }}</td>
+                <td>{% if a.presente %}✅ Sí{% else %}❌ No{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>❌ No hay asistencia cargada para este entrenamiento.</p>
+    {% endif %}
+
+    <br>
+    <a href="/entrenamientos">⬅ Volver</a>
+</body>
+</html>

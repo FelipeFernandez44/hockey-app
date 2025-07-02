@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ jugadora.nombre }}</title>
+</head>
+<body>
+    <h1>📄 Ficha de {{ jugadora.nombre }}</h1>
+
+    <p><strong>DNI:</strong> {{ jugadora.dni }}</p>
+    <p><strong>Teléfono:</strong> {{ jugadora.telefono }}</p>
+    <p><strong>Fecha de nacimiento:</strong> {{ jugadora.fecha_nac }}</p>
+    <p><strong>Número:</strong> {{ jugadora.numero }}</p>
+    <p><strong>Posición:</strong> {{ jugadora.posicion }}</p>
+    <p><strong>Categoría:</strong> {{ jugadora.categoria }}</p>
+
+    <h3>📊 Resumen</h3>
+<p>
+    ✅ Asistencias: {{ presentes }}<br>
+    ❌ Ausencias: {{ ausentes }}<br>
+    📈 Porcentaje de asistencia: {{ porcentaje }}%
+</p>
+
+    <table border="1" cellpadding="5">
+    <tr>
+        <th>Fecha</th>
+        <th>Categoría</th>
+        <th>¿Presente?</th>
+    </tr>
+    {% for a in asistencias %}
+    <tr>
+        <td>{{ a["fecha"] }}</td>
+        <td>{{ a["categoria"] }}</td>
+        <td>{% if a["presente"] %} ✅ Sí {% else %} ❌ No {% endif %}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<p><a href="/jugadora/{{ jugadora.id }}/editar">✏️ Editar información</a></p>
+
+
+    <br>
+    <a href="/jugadoras">⬅ Volver al listado</a>
+</body>
+</html>
+
+<p><a href="/jugadora/{{ jugadora.id }}/eliminar" style="color: red;">🗑️ Eliminar jugadora</a></p>

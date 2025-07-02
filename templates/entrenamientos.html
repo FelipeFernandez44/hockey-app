@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Entrenamientos</title>
+</head>
+<body>
+    <h1>📅 Lista de entrenamientos</h1>
+
+    <a href="/entrenamiento/nuevo">➕ Cargar nuevo entrenamiento</a>
+
+    {% if entrenamientos %}
+        <ul>
+        {% for e in entrenamientos %}
+            <li>
+                {{ e.fecha }} - {{ e.categoria }}
+                (<a href="/entrenamiento/{{ e.id }}/editar">✏️ Editar</a> |
+                 <a href="/asistencia/{{ e.id }}">📝 Tomar asistencia</a> |
+                 <a href="/entrenamiento/{{ e.id }}/asistencias">📋 Ver asistencia</a>)
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>❌ No hay entrenamientos registrados.</p>
+    {% endif %}
+
+    <a href="/">⬅ Volver al inicio</a>
+</body>
+</html>

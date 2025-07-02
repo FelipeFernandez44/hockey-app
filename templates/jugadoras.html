@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Jugadoras</title>
+</head>
+<body>
+    <h1>👥 Jugadoras</h1>
+    <a href="/jugadora/nueva">➕ Cargar nueva jugadora</a>
+    <ul>
+    {% for j in jugadoras %}
+        <li><a href="/jugadora/{{ j.id }}">{{ j.nombre }}</a> - {{ j.posicion }} (#{{ j.numero }})</li>
+    {% endfor %}
+    </ul>
+    <a href="/">⬅ Volver al inicio</a>
+</body>
+</html>

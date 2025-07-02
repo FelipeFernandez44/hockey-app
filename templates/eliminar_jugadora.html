@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Eliminar {{ jugadora.nombre }}</title>
+</head>
+<body>
+    <h1>🗑️ Eliminar jugadora</h1>
+    <p>¿Estás seguro de que querés eliminar a <strong>{{ jugadora.nombre }}</strong>?</p>
+
+    <form method="post">
+        <button type="submit">❌ Sí, eliminar</button>
+        <a href="/jugadora/{{ jugadora.id }}">Cancelar</a>
+    </form>
+</body>
+</html>
