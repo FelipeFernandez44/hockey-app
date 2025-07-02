@@ -68,22 +68,28 @@ def register():
 def login():
     error = None
     if request.method == 'POST':
-        dni = request.form['dni']  # Cambiá el form para que el name sea dni
+        print("🎯 Entrando al login handler")
+        
+        dni = request.form['dni']
         password = request.form['password']
 
-        print("🎯 Intentando login con:", dni, password)  # Log para debug
+        print(f"🎯 Buscando usuario {dni}")
 
         user = buscar_usuario_db(dni, password)
+        
         if user:
+            print(f"🎯 Usuario {dni} encontrado, iniciando sesión")
             session['username'] = user['dni']
             session['nombre'] = user['nombre']
             session['club'] = user['club']
             session['plan'] = user['plan']
             return redirect(url_for('dashboard'))
         else:
+            print(f"⚠ Usuario {dni} no encontrado o contraseña incorrecta")
             error = 'Usuario o contraseña incorrectos'
 
     return render_template('login.html', error=error)
+
 
 # Logout
 @app.route('/logout')
@@ -96,9 +102,13 @@ def logout():
 def dashboard():
     if 'username' not in session:
         return redirect(url_for('login'))
+    
+    print(f"🎯 Entrando al dashboard de {session.get('username')}")
 
     equipo = session['club']
     ruta_excel = "data/Fixtures Unificados listo.xlsx"
+
+    print("🎯 Buscando fixture y posiciones")
 
     partidos = buscar_fixture_equipo(ruta_excel, equipo, "2025", "femenino", "primera")
     posiciones = buscar_posiciones_equipo(ruta_excel, equipo, "2025", "primera")
@@ -113,6 +123,7 @@ def dashboard():
         next_match=next_match,
         positions=posiciones
     )
+
 
 @app.route('/')
 def index():
