@@ -294,6 +294,38 @@ def ver_fixture_excel():
         equipos_disponibles=equipos_disponibles
     )
 
+from flask import Flask, render_template, request, redirect, url_for, session
+
+app = Flask(__name__)
+app.secret_key = 'tu_clave_secreta'
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        if request.form['username'] == 'admin' and request.form['password'] == '1234':
+            session['username'] = request.form['username']
+            session['club'] = 'Everton de La Plata'  # Hardcodeado por ahora
+            return redirect(url_for('dashboard'))
+        else:
+            error = 'Usuario o contraseña incorrectos'
+    return render_template('login.html', error=error)
+
+@app.route('/dashboard')
+def dashboard():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    return render_template('dashboard.html', username=session['username'], club=session['club'])
+
+@app.route('/')
+def index():
+    return redirect(url_for('login'))
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
 
 if __name__ == '__main__':
     app.run(debug=True)
