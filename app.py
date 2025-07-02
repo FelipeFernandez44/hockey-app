@@ -326,6 +326,24 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+@app.route('/jugadoras')
+def jugadoras():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    return "<h1>Listado de jugadoras (en construcción)</h1>"
+
+@app.route('/entrenamientos')
+def entrenamientos():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    return "<h1>Listado de entrenamientos (en construcción)</h1>"
+
+@app.route('/fixture')
+def fixture():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    return "<h1>Fixture del club (en construcción)</h1>"
+
 
 if __name__ == '__main__':
     app.run(debug=True)

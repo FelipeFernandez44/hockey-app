@@ -10,11 +10,42 @@
     <div class="container-fluid">
       <span class="navbar-brand mb-0 h1">Hockey App</span>
       <span class="text-light">Club: {{ club }}</span>
+      <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Salir</a>
     </div>
   </nav>
+
   <div class="container mt-4">
-    <h2>¡Bienvenido, {{ username }}!</h2>
-    <p>Acá irían los accesos a tus secciones: jugadoras, entrenamientos, etc.</p>
+    <h2>¡Bienvenido de nuevo, {{ username }}!</h2>
+
+    <div class="card my-3">
+      <div class="card-body">
+        <h5 class="card-title">Próximo partido</h5>
+        <p class="card-text">vs Club A</p>
+        <p class="card-text">Fecha: 10/07/2025 16:00</p>
+      </div>
+    </div>
+
+    <div class="card my-3">
+      <div class="card-body">
+        <h5 class="card-title">Tabla de posiciones</h5>
+        <table class="table table-sm">
+          <thead>
+            <tr><th>Pos</th><th>Equipo</th><th>Pts</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>Everton</td><td>25</td></tr>
+            <tr><td>2</td><td>Club A</td><td>22</td></tr>
+            <tr><td>3</td><td>Club B</td><td>20</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="d-grid gap-2">
+      <a href="{{ url_for('jugadoras') }}" class="btn btn-primary">Ver Jugadoras</a>
+      <a href="{{ url_for('entrenamientos') }}" class="btn btn-primary">Ver Entrenamientos</a>
+      <a href="{{ url_for('fixture') }}" class="btn btn-primary">Ver Fixture</a>
+    </div>
   </div>
 </body>
 </html>
