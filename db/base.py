@@ -43,6 +43,19 @@ CREATE TABLE IF NOT EXISTS asistencias (
 )
 ''')
 
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS usuarios (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  dni TEXT UNIQUE,
+  nombre TEXT,
+  apellido TEXT,
+  fecha_nac TEXT,
+  password TEXT,
+  club TEXT,
+  plan TEXT
+)
+''')
+
 # Guardar cambios y cerrar conexión
 conn.commit()
 conn.close()

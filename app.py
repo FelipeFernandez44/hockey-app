@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session
-import json
-import os
+import sqlite3
 from utils.leer_excel import (
     buscar_fixture_equipo,
     buscar_posiciones_equipo
@@ -8,52 +7,74 @@ from utils.leer_excel import (
 
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta'
-USUARIOS_FILE = 'data/usuarios.json'
 
-def cargar_usuarios():
-    if not os.path.exists(USUARIOS_FILE):
-        return []
-    with open(USUARIOS_FILE, 'r') as f:
-        return json.load(f)
+# Conexión a DB
+def get_db_connection():
+    conn = sqlite3.connect('db/hockey.db')
+    conn.row_factory = sqlite3.Row
+    return conn
 
-def guardar_usuarios(usuarios):
-    with open(USUARIOS_FILE, 'w') as f:
-        json.dump(usuarios, f, indent=2)
+# Guardar nuevo usuario
+def guardar_usuario_db(dni, nombre, fecha_nac, password, club, plan):
+    conn = get_db_connection()
+    conn.execute(
+        'INSERT INTO usuarios (dni, nombre, fecha_nac, password, club, plan) VALUES (?, ?, ?, ?, ?, ?)',
+        (dni, nombre, fecha_nac, password, club, plan)
+    )
+    conn.commit()
+    conn.close()
 
+# Buscar usuario
+def buscar_usuario_db(dni, password=None):
+    conn = get_db_connection()
+    if password:
+        user = conn.execute(
+            'SELECT * FROM usuarios WHERE dni = ? AND password = ?',
+            (dni, password)
+        ).fetchone()
+    else:
+        user = conn.execute(
+            'SELECT * FROM usuarios WHERE dni = ?',
+            (dni,)
+        ).fetchone()
+    conn.close()
+    return user
+
+# Registro
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     error = None
-    equipos = ['Everton', 'Club A', 'Club B']  # Podés traer esto de leer_excel si querés
+    equipos = ['Everton', 'Club A', 'Club B']
     planes = ['gratis', 'pro', 'club']
 
     if request.method == 'POST':
-        username = request.form['username']
+        dni = request.form['dni']
+        nombre = request.form['nombre']
+        fecha_nac = request.form['fecha_nac']
         password = request.form['password']
         club = request.form['club']
         plan = request.form['plan']
 
-        usuarios = cargar_usuarios()
-        if any(u['username'] == username for u in usuarios):
+        if buscar_usuario_db(dni):
             error = 'El usuario ya existe'
         else:
-            usuarios.append({'username': username, 'password': password, 'club': club, 'plan': plan})
-            guardar_usuarios(usuarios)
+            guardar_usuario_db(dni, nombre, fecha_nac, password, club, plan)
             return redirect(url_for('login'))
 
     return render_template('register.html', error=error, equipos=equipos, planes=planes)
 
+# Login
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
     if request.method == 'POST':
-        username = request.form['username']
+        dni = request.form['username']  # El form usa username, pero es el DNI
         password = request.form['password']
 
-        usuarios = cargar_usuarios()
-        user = next((u for u in usuarios if u['username'] == username and u['password'] == password), None)
-
+        user = buscar_usuario_db(dni, password)
         if user:
-            session['username'] = user['username']
+            session['username'] = user['dni']
+            session['nombre'] = user['nombre']
             session['club'] = user['club']
             session['plan'] = user['plan']
             return redirect(url_for('dashboard'))
@@ -62,11 +83,13 @@ def login():
 
     return render_template('login.html', error=error)
 
+# Logout
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
 
+# Dashboard
 @app.route('/dashboard')
 def dashboard():
     if 'username' not in session:
@@ -82,7 +105,7 @@ def dashboard():
 
     return render_template(
         'dashboard.html',
-        username=session['username'],
+        username=session['nombre'],
         club=equipo,
         plan=session['plan'],
         next_match=next_match,
