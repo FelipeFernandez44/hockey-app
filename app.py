@@ -1,16 +1,12 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 import sqlite3
-from utils.leer_excel import (
-    buscar_fixture_equipo,
-    buscar_posiciones_equipo
-)
 
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta'
 
 # Conexión a DB
 def get_db_connection():
-    conn = sqlite3.connect('db/hockey.db')
+    conn = sqlite3.connect('data/fixtures.db')
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -68,28 +64,20 @@ def register():
 def login():
     error = None
     if request.method == 'POST':
-        print("🎯 Entrando al login handler")
-        
         dni = request.form['dni']
         password = request.form['password']
 
-        print(f"🎯 Buscando usuario {dni}")
-
         user = buscar_usuario_db(dni, password)
-        
         if user:
-            print(f"🎯 Usuario {dni} encontrado, iniciando sesión")
             session['username'] = user['dni']
             session['nombre'] = user['nombre']
             session['club'] = user['club']
             session['plan'] = user['plan']
             return redirect(url_for('dashboard'))
         else:
-            print(f"⚠ Usuario {dni} no encontrado o contraseña incorrecta")
             error = 'Usuario o contraseña incorrectos'
 
     return render_template('login.html', error=error)
-
 
 # Logout
 @app.route('/logout')
@@ -103,28 +91,48 @@ def dashboard():
     if 'username' not in session:
         return redirect(url_for('login'))
 
-    print(f"🎯 Entrando al dashboard de {session.get('username')}")
+    equipo = session['club']
+    conn = get_db_connection()
 
-    # equipo = session['club']
-    # ruta_excel = "data/Fixtures Unificados listo.xlsx"
+    # Próximo partido
+    partido = conn.execute(
+        "SELECT * FROM fixture WHERE `Equipo A` = ? OR `Equipo B` = ? ORDER BY Fecha LIMIT 1",
+        (equipo, equipo)
+    ).fetchone()
 
-    # print("🎯 Buscando fixture y posiciones")
+    # Posiciones
+    posiciones = conn.execute(
+        "SELECT `Posiciones`, `Equipos`, `Ptos` FROM posiciones WHERE 1 ORDER BY Posiciones LIMIT 10"
+    ).fetchall()
 
-    # partidos = buscar_fixture_equipo(ruta_excel, equipo, "2025", "femenino", "primera")
-    # posiciones = buscar_posiciones_equipo(ruta_excel, equipo, "2025", "primera")
+    conn.close()
 
-    # next_match = partidos[0] if partidos else {"rival": "N/A", "fecha": "N/A"}
+    next_match = {
+        "rival": partido["Equipo B"] if partido and partido["Equipo A"] == equipo else partido["Equipo A"] if partido else "N/A",
+        "fecha": partido["Fecha"] if partido else "N/A"
+    }
 
     return render_template(
         'dashboard.html',
         username=session['nombre'],
-        club=session['club'],
+        club=equipo,
         plan=session['plan'],
-        next_match={"rival": "N/A", "fecha": "N/A"},
-        positions=[]
+        next_match=next_match,
+        positions=posiciones
     )
 
+# Botones provisorios
+@app.route('/jugadoras')
+def jugadoras():
+    return "<h1>Página de jugadoras en construcción</h1>"
 
+@app.route('/entrenamientos')
+def entrenamientos():
+    return "<h1>Página de entrenamientos en construcción</h1>"
+
+@app.route('/fixture')
+def fixture():
+    return "<h1>Página de fixture en construcción</h1>"
 
 @app.route('/')
 def index():
