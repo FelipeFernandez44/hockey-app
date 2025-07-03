@@ -7,7 +7,7 @@ db_file = "data/fixtures.db"
 
 # Leemos las hojas
 df_fixture = pd.read_excel(excel_file, sheet_name="Fixtures")
-df_posiciones = pd.read_excel(excel_file, sheet_name="Tabla de Posiciones")
+df_posiciones = pd.read_excel(excel_file, sheet_name="Tablas de Posiciones")
 df_goleadoras = pd.read_excel(excel_file, sheet_name="Goleadoras")
 
 # Conectamos a la DB (la sobreescribimos si ya existe)
