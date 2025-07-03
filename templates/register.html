@@ -28,23 +28,33 @@
         </div>
         <div class="mb-3">
           <label>Club</label>
-          <select name="club" class="form-select" required>
+          <input list="equipos" name="club" class="form-control" required>
+          <datalist id="equipos">
             {% for equipo in equipos %}
-            <option value="{{ equipo }}">{{ equipo }}</option>
+              <option value="{{ equipo }}">
             {% endfor %}
-          </select>
+          </datalist>
         </div>
         <div class="mb-3">
           <label>Plan</label>
           <select name="plan" class="form-select" required>
             {% for plan in planes %}
-            <option value="{{ plan }}">{{ plan|capitalize }}</option>
+              <option value="{{ plan }}">{{ plan|capitalize }}</option>
             {% endfor %}
           </select>
         </div>
         {% if error %}
         <div class="alert alert-danger">{{ error }}</div>
         {% endif %}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
         <button type="submit" class="btn btn-primary w-100">Crear cuenta</button>
         <a href="{{ url_for('login') }}" class="d-block mt-2 text-center">Ya tengo cuenta</a>
       </form>
@@ -52,3 +62,4 @@
   </div>
 </body>
 </html>
+

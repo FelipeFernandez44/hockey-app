@@ -46,8 +46,15 @@ def buscar_usuario_db(dni, password=None):
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     error = None
-    equipos = ['Everton', 'Club A', 'Club B']
     planes = ['gratis', 'pro', 'club']
+
+    # Cargamos los equipos del fixture
+    conn = get_fixtures_connection()
+    equipos_a = conn.execute("SELECT DISTINCT `Equipo A` FROM fixture").fetchall()
+    equipos_b = conn.execute("SELECT DISTINCT `Equipo B` FROM fixture").fetchall()
+    conn.close()
+
+    equipos = set([row["Equipo A"] for row in equipos_a] + [row["Equipo B"] for row in equipos_b])
 
     if request.method == 'POST':
         dni = request.form['dni']
@@ -61,9 +68,10 @@ def register():
             error = 'El usuario ya existe'
         else:
             guardar_usuario_db(dni, nombre, fecha_nac, password, club, plan)
+            flash("Usuario creado correctamente", "success")
             return redirect(url_for('login'))
 
-    return render_template('register.html', error=error, equipos=equipos, planes=planes)
+    return render_template('register.html', error=error, equipos=sorted(equipos), planes=planes)
 
 # Login
 @app.route('/login', methods=['GET', 'POST'])
