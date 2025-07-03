@@ -4,15 +4,21 @@ import sqlite3
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta'
 
-# Conexión a DB
-def get_db_connection():
+# Conexión a DB de fixtures
+def get_fixtures_connection():
     conn = sqlite3.connect('data/fixtures.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+# Conexión a DB de usuarios
+def get_usuarios_connection():
+    conn = sqlite3.connect('db/hockey.db')
     conn.row_factory = sqlite3.Row
     return conn
 
 # Guardar nuevo usuario
 def guardar_usuario_db(dni, nombre, fecha_nac, password, club, plan):
-    conn = get_db_connection()
+    conn = get_usuarios_connection()
     conn.execute(
         'INSERT INTO usuarios (dni, nombre, fecha_nac, password, club, plan) VALUES (?, ?, ?, ?, ?, ?)',
         (dni, nombre, fecha_nac, password, club, plan)
@@ -22,7 +28,7 @@ def guardar_usuario_db(dni, nombre, fecha_nac, password, club, plan):
 
 # Buscar usuario
 def buscar_usuario_db(dni, password=None):
-    conn = get_db_connection()
+    conn = get_usuarios_connection()
     if password:
         user = conn.execute(
             'SELECT * FROM usuarios WHERE dni = ? AND password = ?',
@@ -92,7 +98,7 @@ def dashboard():
         return redirect(url_for('login'))
 
     equipo = session['club']
-    conn = get_db_connection()
+    conn = get_fixtures_connection()
 
     # Próximo partido
     partido = conn.execute(
