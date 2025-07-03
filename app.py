@@ -15,13 +15,20 @@ def get_usuarios_connection():
     return conn
 
 def guardar_usuario_db(dni, nombre, fecha_nac, password, club, plan, rama):
-    conn = get_usuarios_connection()
-    conn.execute(
-        'INSERT INTO usuarios (dni, nombre, fecha_nac, password, club, plan, rama) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        (dni, nombre, fecha_nac, password, club, plan, rama)
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn = get_usuarios_connection()
+        conn.execute(
+            'INSERT INTO usuarios (dni, nombre, fecha_nac, password, club, plan, rama) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            (dni, nombre, fecha_nac, password, club, plan, rama)
+        )
+        conn.commit()
+        print("✅ Usuario guardado correctamente.")
+    except Exception as e:
+        print(f"❌ ERROR al guardar usuario: {e}")
+        raise
+    finally:
+        conn.close()
+
 
 def buscar_usuario_db(dni, password=None):
     conn = get_usuarios_connection()
