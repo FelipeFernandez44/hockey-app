@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS asistencias (
 )
 ''')
 
+# Crear tabla usuarios con rama incluida
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS usuarios (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,7 +53,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
   fecha_nac TEXT,
   password TEXT,
   club TEXT,
-  plan TEXT
+  plan TEXT,
+  rama TEXT
 )
 ''')
 
@@ -60,4 +62,4 @@ CREATE TABLE IF NOT EXISTS usuarios (
 conn.commit()
 conn.close()
 
-print("✅ Base de datos creada con las 3 tablas.")
+print("✅ Base de datos creada con las tablas.")
