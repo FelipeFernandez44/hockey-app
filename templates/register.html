@@ -57,6 +57,13 @@
 
         <button type="submit" class="btn btn-primary w-100">Crear cuenta</button>
         <a href="{{ url_for('login') }}" class="d-block mt-2 text-center">Ya tengo cuenta</a>
+        <div class="mb-3">
+          <label>Rama</label>
+          <select name="rama" class="form-select" required>
+            <option value="DAMAS">Damas</option>
+            <option value="CABALLEROS">Caballeros</option>
+          </select>
+        </div>
       </form>
     </div>
   </div>
