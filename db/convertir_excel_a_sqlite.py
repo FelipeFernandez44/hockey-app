@@ -6,7 +6,7 @@ excel_file = "data/Fixtures Unificados listo.xlsx"
 db_file = "data/fixtures.db"
 
 # Leemos las hojas
-df_fixture = pd.read_excel(excel_file, sheet_name="Fixture")
+df_fixture = pd.read_excel(excel_file, sheet_name="Fixtures")
 df_posiciones = pd.read_excel(excel_file, sheet_name="Tabla de Posiciones")
 df_goleadoras = pd.read_excel(excel_file, sheet_name="Goleadoras")
 
