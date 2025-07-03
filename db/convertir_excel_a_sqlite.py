@@ -18,6 +18,19 @@ df_fixture.to_sql("fixture", conn, if_exists="replace", index=False)
 df_posiciones.to_sql("posiciones", conn, if_exists="replace", index=False)
 df_goleadoras.to_sql("goleadoras", conn, if_exists="replace", index=False)
 
+# Creamos la tabla usuarios si no existe
+conn.execute("""
+CREATE TABLE IF NOT EXISTS usuarios (
+    dni TEXT PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    fecha_nac TEXT NOT NULL,
+    password TEXT NOT NULL,
+    club TEXT NOT NULL,
+    plan TEXT NOT NULL
+)
+""")
+
+conn.commit()
 conn.close()
 
 print("✅ ¡La base fixtures.db fue generada exitosamente!")
