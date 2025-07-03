@@ -107,7 +107,7 @@ def dashboard():
     partido = conn.execute(
         """
         SELECT * FROM fixture
-        WHERE Año = 2025 AND Categoria = ? AND ( `Equipo A` = ? OR `Equipo B` = ? )
+        WHERE Año = 2025 AND Categoría = ? AND ( `Equipo A` = ? OR `Equipo B` = ? )
         ORDER BY Ronda ASC, Zona ASC, Fecha ASC
         LIMIT 1
         """,
@@ -128,7 +128,7 @@ def dashboard():
             """
             SELECT Posiciones AS pos, Equipos AS equipo, Ptos AS pts
             FROM posiciones
-            WHERE Año = 2025 AND Categoria = ? AND Ronda = ? AND Zona = ?
+            WHERE Año = 2025 AND Categoría = ? AND Ronda = ? AND Zona = ?
             ORDER BY Posiciones ASC
             """,
             (categoria, ronda, zona)
