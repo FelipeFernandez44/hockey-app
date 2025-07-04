@@ -19,7 +19,7 @@ def guardar_usuario_db(dni, nombre, fecha_nac, password, club, plan, rama):
         conn = get_usuarios_connection()
         conn.execute(
             'INSERT INTO usuarios (dni, nombre, fecha_nac, password, club, plan, rama) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            (dni, nombre, fecha_nac, password, club, plan, rama)
+            (dni, nombre, fecha_nac, password, club.strip(), plan, rama)
         )
         conn.commit()
         print("✅ Usuario guardado correctamente.")
@@ -80,14 +80,18 @@ def login():
     if request.method == 'POST':
         dni = request.form['dni']
         password = request.form['password']
+        categoria = request.form['categoria'].upper()
+
+        print(f"DEBUG LOGIN → DNI: '{dni}', PASSWORD: '{password}', CATEGORIA: '{categoria}'")
 
         user = buscar_usuario_db(dni, password)
         if user:
             session['username'] = user['dni']
             session['nombre'] = user['nombre']
-            session['club'] = user['club']
+            session['club'] = user['club'].strip()
             session['plan'] = user['plan']
             session['rama'] = user['rama']
+            session['categoria'] = categoria
             return redirect(url_for('dashboard'))
         else:
             error = 'Usuario o contraseña incorrectos'
@@ -100,13 +104,17 @@ def dashboard():
         return redirect(url_for('login'))
 
     equipo = session['club']
-    categoria = session['rama']
+    categoria = session['categoria']
+
     conn = get_fixtures_connection()
+
+    print(f"USANDO DB fixtures.db en ruta: data/fixtures.db")
+    print(f"EQUIPO: {equipo}, CATEGORIA: {categoria}")
 
     partido = conn.execute(
         """
         SELECT * FROM fixture
-        WHERE Año = 2025 AND `Categoría` = ? AND ( `Equipo A` = ? OR `Equipo B` = ? )
+        WHERE Año = 2025 AND Categoria = ? AND ( TRIM(`Equipo A`) = ? OR TRIM(`Equipo B`) = ? )
         ORDER BY Ronda ASC, Zona ASC, Fecha ASC
         LIMIT 1
         """,
@@ -127,10 +135,10 @@ def dashboard():
             """
             SELECT Posiciones AS pos, Equipos AS equipo, Ptos AS pts
             FROM posiciones
-            WHERE Año = 2025 AND `Categoría` = ? AND Ronda = ? AND Zona = ?
+            WHERE Año = 2025 AND Ronda = ? AND Zona = ? AND Categoria = ?
             ORDER BY Posiciones ASC
             """,
-            (categoria, ronda, zona)
+            (ronda, zona, categoria)
         ).fetchall()
 
         top = posiciones_all[:5]
@@ -140,6 +148,8 @@ def dashboard():
             top = posiciones_all[:4] + [equipo_pos]
 
         posiciones = top
+
+        print(f"POSICIONES ENCONTRADAS: {[dict(p) for p in posiciones_all]}")
 
     conn.close()
 
@@ -174,6 +184,11 @@ def fixture():
     ).fetchall()
     conn.close()
     return render_template('fixture_excel.html', fixture=fixture)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 @app.route('/')
 def index():

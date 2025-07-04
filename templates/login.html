@@ -7,7 +7,7 @@
 </head>
 <body class="bg-light">
   <div class="container d-flex justify-content-center align-items-center vh-100">
-    <div class="card p-4 shadow" style="min-width: 300px;">
+    <div class="card p-4 shadow" style="min-width: 300px; max-width: 400px;">
       <h3 class="text-center mb-3">Ingresar</h3>
       <form method="POST">
         <div class="mb-3">
@@ -18,11 +18,19 @@
           <label class="form-label">Contraseña</label>
           <input type="password" name="password" class="form-control" required>
         </div>
+        <div class="mb-3">
+          <label class="form-label">Categoría que entrena</label>
+          <select name="categoria" class="form-select" required>
+            <option value="PRIMERA">Primera</option>
+            <option value="INTERMEDIA">Intermedia</option>
+            <option value="5TA">5ta</option>
+            <option value="6TA">6ta</option>
+            <option value="7MA">7ma</option>
+          </select>
+        </div>
         {% if error %}
         <div class="alert alert-danger">{{ error }}</div>
         {% endif %}
-        <button type="submit" class="btn btn-primary w-100">Entrar</button>
-        <a href="{{ url_for('register') }}" class="d-block mt-2 text-center">Crear cuenta nueva</a>
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             {% for category, message in messages %}
@@ -30,7 +38,8 @@
             {% endfor %}
           {% endif %}
         {% endwith %}
-
+        <button type="submit" class="btn btn-primary w-100">Entrar</button>
+        <a href="{{ url_for('register') }}" class="d-block mt-2 text-center">Crear cuenta nueva</a>
       </form>
     </div>
   </div>

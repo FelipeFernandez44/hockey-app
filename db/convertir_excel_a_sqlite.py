@@ -10,6 +10,11 @@ df_fixture = pd.read_excel(excel_file, sheet_name="Fixtures")
 df_posiciones = pd.read_excel(excel_file, sheet_name="Tablas de Posiciones")
 df_goleadoras = pd.read_excel(excel_file, sheet_name="Goleadoras")
 
+# Opcional: limpiar columnas "Unnamed" si molestan
+df_fixture = df_fixture.loc[:, ~df_fixture.columns.str.contains('^Unnamed')]
+df_posiciones = df_posiciones.loc[:, ~df_posiciones.columns.str.contains('^Unnamed')]
+df_goleadoras = df_goleadoras.loc[:, ~df_goleadoras.columns.str.contains('^Unnamed')]
+
 # Conectamos a la DB (la sobreescribimos si ya existe)
 conn = sqlite3.connect(db_file)
 
