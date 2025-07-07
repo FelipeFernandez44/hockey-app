@@ -1,9 +1,16 @@
 import os
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 import psycopg2
 from dotenv import load_dotenv
 
 # Cargar variables de entorno
+def get_fixtures_connection():
+    import sqlite3
+    conn = sqlite3.connect('data/fixtures.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -166,6 +173,64 @@ def init_db():
     cur.close()
     conn.close()
     return 'Base de datos inicializada correctamente'
+
+@app.route('/agregar_equipo', methods=['GET', 'POST'])
+def agregar_equipo():
+    conn = get_fixtures_connection()
+    equipos_a = conn.execute("SELECT DISTINCT `Equipo A`, Rama FROM fixture").fetchall()
+    equipos_b = conn.execute("SELECT DISTINCT `Equipo B`, Rama FROM fixture").fetchall()
+    conn.close()
+
+    equipos_todos = set([ (row["Equipo A"].strip(), row["Rama"].strip()) for row in equipos_a + equipos_b ])
+    categorias = ['PRIMERA', 'INTERMEDIA', '5TA', '6TA', '7MA']
+    error = None
+
+    # Identificamos qué ramas y clubes ya tiene el usuario
+    contextos = session.get('contextos', {})
+    ramas_registradas = set()
+    clubes_por_rama = {}
+
+    for key, ctx in contextos.items():
+        rama = ctx['rama']
+        club = ctx['club']
+        ramas_registradas.add(rama)
+        clubes_por_rama.setdefault(rama, set()).add(club)
+
+    # Filtramos opciones de equipos válidas
+    equipos_filtrados = set()
+    for club, rama in equipos_todos:
+        if rama in ramas_registradas:
+            # Solo permitir el MISMO club para esa rama
+            if club in clubes_por_rama[rama]:
+                equipos_filtrados.add((club, rama))
+        else:
+            # Si no tiene esa rama, permitir cualquier club
+            equipos_filtrados.add((club, rama))
+
+    if request.method == 'POST':
+        rama = request.form['rama'].strip().upper()
+        club = request.form['club'].strip()
+        categoria = request.form['categoria'].strip().upper()
+
+        clave = f"{rama}_{club}"
+        if clave in contextos:
+            error = 'Ya tenés ese equipo cargado.'
+        else:
+            # Validamos que esté autorizado
+            if rama in ramas_registradas and club not in clubes_por_rama[rama]:
+                error = f"Ya tenés un equipo en {rama}. Solo podés agregar otra categoría del club {list(clubes_por_rama[rama])[0]}."
+            else:
+                session['contextos'][clave] = {
+                    'rama': rama,
+                    'club': club,
+                    'categoria': categoria
+                }
+                session['contexto_activo'] = session['contextos'][clave]
+                flash(f"Nuevo equipo agregado: {rama} - {club} - {categoria}", "success")
+                return redirect(url_for('dashboard'))
+
+    return render_template('agregar_equipo.html', equipos=equipos_filtrados, categorias=categorias, error=error)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
