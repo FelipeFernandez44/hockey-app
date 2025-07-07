@@ -2,37 +2,30 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 import psycopg2
 from dotenv import load_dotenv
-
-# Cargar variables de entorno
-def get_fixtures_connection():
-    import sqlite3
-    conn = sqlite3.connect('data/fixtures.db')
-    conn.row_factory = sqlite3.Row
-    return conn
-
+import sqlite3
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
 
-# Función para conectar a la base de datos
+# ---------------------------- CONEXIONES ----------------------------
 
 def conectar_db():
-    return psycopg2.connect(
-        host=os.getenv("DB_HOST", "dpg-d1m1cgripnbc73fifqa0-a"),
-        database=os.getenv("DB_NAME", "hockeyapp"),
-        user=os.getenv("DB_USER", "hockeyapp_user"),
-        password=os.getenv("DB_PASSWORD", "TU_PASSWORD_AQUI"),
-        port=os.getenv("DB_PORT", 5432)
-    )
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    return psycopg2.connect(DATABASE_URL)
 
-# Ruta raíz
+def get_fixtures_connection():
+    conn = sqlite3.connect('data/fixtures.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+# ---------------------------- RUTAS ----------------------------
+
 @app.route('/')
 def index():
     return redirect(url_for('login'))
 
-# Registro
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -63,7 +56,6 @@ def register():
 
     return render_template('register.html')
 
-# Login
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -79,23 +71,20 @@ def login():
 
         if user:
             session['user_id'] = user[0]
-            session['categoria'] = user[7] if len(user) > 7 else 'general'  # fallback
+            session['categoria'] = user[7] if len(user) > 7 else 'general'
             return redirect(url_for('dashboard'))
         else:
             return 'Usuario o contraseña incorrectos'
 
     return render_template('login.html')
 
-# Dashboard
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-
     categoria = session.get('categoria')
     return render_template('dashboard.html', categoria=categoria)
 
-# Ruta para ver jugadoras
 @app.route('/jugadoras')
 def ver_jugadoras():
     conn = conectar_db()
@@ -106,7 +95,6 @@ def ver_jugadoras():
     conn.close()
     return render_template('jugadoras.html', jugadoras=jugadoras)
 
-# Ruta para ver entrenamientos
 @app.route('/entrenamientos')
 def entrenamientos():
     conn = conectar_db()
@@ -117,18 +105,16 @@ def entrenamientos():
     conn.close()
     return render_template('entrenamientos.html', entrenamientos=entrenamientos)
 
-# Ruta para ver fixture desde base
 @app.route('/fixture')
 def fixture():
     conn = conectar_db()
     cur = conn.cursor()
-    cur.execute('SELECT * FROM fixtures')  # Asegurate de tener esta tabla o cambiar el nombre
+    cur.execute('SELECT * FROM fixtures')
     fixture_data = cur.fetchall()
     cur.close()
     conn.close()
     return render_template('fixture.html', fixture=fixture_data)
 
-# Inicializar base de datos
 @app.route('/initdb')
 def init_db():
     conn = conectar_db()
@@ -181,11 +167,10 @@ def agregar_equipo():
     equipos_b = conn.execute("SELECT DISTINCT `Equipo B`, Rama FROM fixture").fetchall()
     conn.close()
 
-    equipos_todos = set([ (row["Equipo A"].strip(), row["Rama"].strip()) for row in equipos_a + equipos_b ])
+    equipos_todos = set([ (row[0].strip(), row[1].strip()) for row in equipos_a + equipos_b ])
     categorias = ['PRIMERA', 'INTERMEDIA', '5TA', '6TA', '7MA']
     error = None
 
-    # Identificamos qué ramas y clubes ya tiene el usuario
     contextos = session.get('contextos', {})
     ramas_registradas = set()
     clubes_por_rama = {}
@@ -196,15 +181,12 @@ def agregar_equipo():
         ramas_registradas.add(rama)
         clubes_por_rama.setdefault(rama, set()).add(club)
 
-    # Filtramos opciones de equipos válidas
     equipos_filtrados = set()
     for club, rama in equipos_todos:
         if rama in ramas_registradas:
-            # Solo permitir el MISMO club para esa rama
             if club in clubes_por_rama[rama]:
                 equipos_filtrados.add((club, rama))
         else:
-            # Si no tiene esa rama, permitir cualquier club
             equipos_filtrados.add((club, rama))
 
     if request.method == 'POST':
@@ -216,21 +198,16 @@ def agregar_equipo():
         if clave in contextos:
             error = 'Ya tenés ese equipo cargado.'
         else:
-            # Validamos que esté autorizado
             if rama in ramas_registradas and club not in clubes_por_rama[rama]:
                 error = f"Ya tenés un equipo en {rama}. Solo podés agregar otra categoría del club {list(clubes_por_rama[rama])[0]}."
             else:
-                session['contextos'][clave] = {
-                    'rama': rama,
-                    'club': club,
-                    'categoria': categoria
-                }
-                session['contexto_activo'] = session['contextos'][clave]
+                contextos[clave] = {'rama': rama, 'club': club, 'categoria': categoria}
+                session['contextos'] = contextos
+                session['contexto_activo'] = contextos[clave]
                 flash(f"Nuevo equipo agregado: {rama} - {club} - {categoria}", "success")
                 return redirect(url_for('dashboard'))
 
     return render_template('agregar_equipo.html', equipos=equipos_filtrados, categorias=categorias, error=error)
-
 
 if __name__ == '__main__':
     app.run(debug=True)
