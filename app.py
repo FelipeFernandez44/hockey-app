@@ -150,8 +150,10 @@ def login():
             session['contextos'] = {}
             session['contextos'][f"{user['rama']}_{user['club']}"] = {
                 'rama': user['rama'],
-                'club': user['club']
+                'club': user['club'],
+                'categoria': 'PRIMERA'  # ⚠️ temporal, después lo vas a querer hacer bien
             }
+
             session['contexto_activo'] = session['contextos'][f"{user['rama']}_{user['club']}"]
             return redirect(url_for('dashboard'))
         else:
