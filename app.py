@@ -1,344 +1,171 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
 import os
+from flask import Flask, render_template, request, redirect, session, url_for
 import psycopg2
-import sqlite3
+from dotenv import load_dotenv
+
+# Cargar variables de entorno
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'tu_clave_secreta'
+app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
 
-# Conexión a PostgreSQL
-def get_postgres_connection():
-    return psycopg2.connect(os.environ["DATABASE_URL"])
+# Función para conectar a la base de datos
 
-# Conexión al fixture (por ahora lo dejamos en SQLite)
-def get_fixtures_connection():
-    conn = sqlite3.connect('data/fixtures.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+def conectar_db():
+    return psycopg2.connect(
+        host=os.getenv("DB_HOST", "dpg-d1m1cgripnbc73fifqa0-a"),
+        database=os.getenv("DB_NAME", "hockeyapp"),
+        user=os.getenv("DB_USER", "hockeyapp_user"),
+        password=os.getenv("DB_PASSWORD", "TU_PASSWORD_AQUI"),
+        port=os.getenv("DB_PORT", 5432)
+    )
 
-# Funciones de DB
-def guardar_usuario_db(dni, nombre, fecha_nac, email, password, club, rama, plan):
-    conn = get_postgres_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute(
-            '''
-            INSERT INTO usuarios (dni, nombre, fecha_nac, email, password, club, rama, plan)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ''',
-            (dni, nombre, fecha_nac, email, password, club, rama, plan)
-        )
-        conn.commit()
-    except Exception as e:
-        print(f"❌ ERROR al guardar usuario: {e}")
-        raise
-    finally:
-        cursor.close()
-        conn.close()
+# Ruta raíz
+@app.route('/')
+def index():
+    return redirect(url_for('login'))
 
-def buscar_usuario_db(dni, password=None):
-    conn = get_postgres_connection()
-    cursor = conn.cursor()
-    try:
-        if password:
-            cursor.execute('SELECT * FROM usuarios WHERE dni = %s AND password = %s', (dni, password))
-        else:
-            cursor.execute('SELECT * FROM usuarios WHERE dni = %s', (dni,))
-        user = cursor.fetchone()
-        if user:
-            desc = [desc[0] for desc in cursor.description]
-            return dict(zip(desc, user))
-        return None
-    finally:
-        cursor.close()
-        conn.close()
-
-@app.route("/initdb")
-def init_db():
-    conn = get_postgres_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS usuarios (
-                id SERIAL PRIMARY KEY,
-                dni TEXT NOT NULL,
-                nombre TEXT NOT NULL,
-                fecha_nac TEXT NOT NULL,
-                email TEXT NOT NULL,
-                password TEXT NOT NULL,
-                club TEXT NOT NULL,
-                rama TEXT NOT NULL,
-                plan TEXT NOT NULL
-            )
-        ''')
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS jugadoras (
-                id SERIAL PRIMARY KEY,
-                nombre TEXT,
-                dni TEXT,
-                telefono TEXT,
-                fecha_nac TEXT,
-                numero INTEGER,
-                posicion TEXT,
-                categoria TEXT
-            )
-        ''')
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS entrenamientos (
-                id SERIAL PRIMARY KEY,
-                fecha TEXT,
-                categoria TEXT
-            )
-        ''')
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS asistencias (
-                id SERIAL PRIMARY KEY,
-                entrenamiento_id INTEGER REFERENCES entrenamientos(id),
-                jugadora_id INTEGER REFERENCES jugadoras(id),
-                presente BOOLEAN
-            )
-        ''')
-        conn.commit()
-        return "✅ Base de datos inicializada correctamente"
-    except Exception as e:
-        print("❌ Error al crear las tablas:", e)
-        return "❌ Error al crear las tablas"
-    finally:
-        cursor.close()
-        conn.close()
-
+# Registro
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    error = None
-    planes = ['gratis', 'pro', 'club']
-    conn = get_fixtures_connection()
-    equipos_a = conn.execute("SELECT DISTINCT `Equipo A` FROM fixture").fetchall()
-    equipos_b = conn.execute("SELECT DISTINCT `Equipo B` FROM fixture").fetchall()
-    conn.close()
-    equipos = set([row["Equipo A"] for row in equipos_a] + [row["Equipo B"] for row in equipos_b])
-
     if request.method == 'POST':
         dni = request.form['dni']
         nombre = request.form['nombre']
         fecha_nac = request.form['fecha_nac']
         email = request.form['email']
         password = request.form['password']
-        club = request.form['club'].strip()
+        club = request.form['club']
         rama = request.form['rama']
         plan = request.form['plan']
 
-        if buscar_usuario_db(dni):
-            error = 'El usuario ya existe'
-        else:
-            guardar_usuario_db(dni, nombre, fecha_nac, email, password, club, rama, plan)
-            flash("Usuario creado correctamente", "success")
-            return redirect(url_for('login'))
+        conn = conectar_db()
+        cur = conn.cursor()
+        cur.execute('SELECT * FROM usuarios WHERE dni = %s', (dni,))
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            return 'Usuario ya registrado'
 
-    return render_template('register.html', error=error, planes=planes, equipos=sorted(equipos))
+        cur.execute('''INSERT INTO usuarios (dni, nombre, fecha_nac, email, password, club, rama, plan)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
+                    (dni, nombre, fecha_nac, email, password, club, rama, plan))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return redirect(url_for('login'))
 
+    return render_template('register.html')
+
+# Login
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    error = None
     if request.method == 'POST':
         dni = request.form['dni']
         password = request.form['password']
-        user = buscar_usuario_db(dni, password)
-        if user:
-            session['username'] = user['dni']
-            session['nombre'] = user['nombre']
-            session['plan'] = user['plan']
-            session['contextos'] = {}
-            session['contextos'][f"{user['rama']}_{user['club']}"] = {
-                'rama': user['rama'],
-                'club': user['club'],
-                'categoria': 'PRIMERA'  # ⚠️ temporal, después lo vas a querer hacer bien
-            }
 
-            session['contexto_activo'] = session['contextos'][f"{user['rama']}_{user['club']}"]
+        conn = conectar_db()
+        cur = conn.cursor()
+        cur.execute('SELECT * FROM usuarios WHERE dni = %s AND password = %s', (dni, password))
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if user:
+            session['user_id'] = user[0]
+            session['categoria'] = user[7] if len(user) > 7 else 'general'  # fallback
             return redirect(url_for('dashboard'))
         else:
-            error = 'Usuario o contraseña incorrectos'
+            return 'Usuario o contraseña incorrectos'
 
-    return render_template('login.html', error=error)
+    return render_template('login.html')
 
+# Dashboard
+@app.route('/dashboard')
+def dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    categoria = session.get('categoria')
+    return render_template('dashboard.html', categoria=categoria)
+
+# Ruta para ver jugadoras
 @app.route('/jugadoras')
-def jugadoras():
-    conn = get_postgres_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM jugadoras")
-    rows = cursor.fetchall()
-    desc = [d[0] for d in cursor.description]
-    jugadoras = [dict(zip(desc, row)) for row in rows]
-    cursor.close()
+def ver_jugadoras():
+    conn = conectar_db()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM jugadoras')
+    jugadoras = cur.fetchall()
+    cur.close()
     conn.close()
     return render_template('jugadoras.html', jugadoras=jugadoras)
 
+# Ruta para ver entrenamientos
 @app.route('/entrenamientos')
 def entrenamientos():
-    conn = get_postgres_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM entrenamientos")
-    rows = cursor.fetchall()
-    desc = [d[0] for d in cursor.description]
-    entrenamientos = [dict(zip(desc, row)) for row in rows]
-    cursor.close()
+    conn = conectar_db()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM entrenamientos')
+    entrenamientos = cur.fetchall()
+    cur.close()
     conn.close()
     return render_template('entrenamientos.html', entrenamientos=entrenamientos)
 
+# Ruta para ver fixture desde base
 @app.route('/fixture')
 def fixture():
-    conn = get_fixtures_connection()
-    fixture = conn.execute("SELECT * FROM fixture WHERE Año = 2025 ORDER BY Ronda, Zona, Fecha").fetchall()
+    conn = conectar_db()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM fixtures')  # Asegurate de tener esta tabla o cambiar el nombre
+    fixture_data = cur.fetchall()
+    cur.close()
     conn.close()
-    return render_template('fixture_excel.html', fixture=fixture)
+    return render_template('fixture.html', fixture=fixture_data)
 
-@app.route('/dashboard')
-def dashboard():
-    if 'username' not in session or not session.get('contextos'):
-        return redirect(url_for('seleccionar_contexto'))
+# Inicializar base de datos
+@app.route('/initdb')
+def init_db():
+    conn = conectar_db()
+    cur = conn.cursor()
 
-    contextos = session['contextos']
-    if len(contextos) > 1 and not session.get('activo'):
-        flash("Con qué equipo querés trabajar hoy?", "info")
-        return render_template('elegir_equipo.html', contextos=contextos)
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id SERIAL PRIMARY KEY,
+            dni TEXT,
+            nombre TEXT,
+            fecha_nac TEXT,
+            email TEXT,
+            password TEXT,
+            club TEXT,
+            rama TEXT,
+            plan TEXT
+        )
+    ''')
 
-    if not session.get('activo'):
-        session['activo'] = next(iter(contextos.items()))
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS jugadoras (
+            id SERIAL PRIMARY KEY,
+            nombre TEXT,
+            dni TEXT,
+            fecha_nac TEXT,
+            posicion TEXT,
+            numero TEXT,
+            equipo TEXT
+        )
+    ''')
 
-        rama, data = session['activo']
-        equipo = data.get('club')
-        categoria = data.get('categoria')
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS entrenamientos (
+            id SERIAL PRIMARY KEY,
+            fecha TEXT,
+            equipo TEXT,
+            tipo TEXT
+        )
+    ''')
 
-        if not categoria:
-            flash("Seleccioná la categoría antes de continuar", "warning")
-            return redirect(url_for('seleccionar_contexto'))
-
-
-    contexto = session['contexto_activo']
-    equipo = contexto['club']
-    rama = contexto['rama']
-
-    conn = get_fixtures_connection()
-    partido = conn.execute(
-        """
-        SELECT * FROM fixture
-        WHERE Año = 2025 AND Rama = ? AND (TRIM(`Equipo A`) = ? OR TRIM(`Equipo B`) = ?)
-        ORDER BY Ronda ASC, Zona ASC, Fecha ASC
-        LIMIT 1
-        """,
-        (rama, equipo, equipo)
-    ).fetchone()
-
-    next_match = {
-        "rival": partido["Equipo B"] if partido and partido["Equipo A"] == equipo else partido["Equipo A"] if partido else "N/A",
-        "fecha": f"Ronda {partido['Ronda']} | Zona {partido['Zona']} | Fecha {partido['Fecha']}" if partido else "N/A"
-    }
-
-    posiciones = []
-    if partido:
-        ronda = partido["Ronda"]
-        zona = partido["Zona"]
-        posiciones_all = conn.execute(
-            """
-            SELECT Posiciones AS pos, Equipos AS equipo, Ptos AS pts
-            FROM posiciones
-            WHERE Año = 2025 AND Ronda = ? AND Zona = ? AND Rama = ?
-            ORDER BY Posiciones ASC
-            """,
-            (ronda, zona, rama)
-        ).fetchall()
-
-        top = posiciones_all[:5]
-        equipo_pos = next((p for p in posiciones_all if p["equipo"] == equipo), None)
-        if equipo_pos and equipo_pos not in top:
-            top = posiciones_all[:4] + [equipo_pos]
-        posiciones = top
-
+    conn.commit()
+    cur.close()
     conn.close()
-    return render_template('dashboard.html', username=session['nombre'], plan=session['plan'],
-                           next_match=next_match, positions=posiciones, club=equipo)
+    return 'Base de datos inicializada correctamente'
 
-@app.route('/seleccionar_contexto', methods=['GET', 'POST'])
-def seleccionar_contexto():
-    conn = get_fixtures_connection()
-    equipos_a = conn.execute("SELECT DISTINCT `Equipo A`, Rama FROM fixture").fetchall()
-    equipos_b = conn.execute("SELECT DISTINCT `Equipo B`, Rama FROM fixture").fetchall()
-    conn.close()
-
-    equipos = set([(row["Equipo A"], row["Rama"]) for row in equipos_a] + [(row["Equipo B"], row["Rama"]) for row in equipos_b])
-
-    ramas = ['DAMAS', 'CABALLEROS']
-    categorias = ['PRIMERA', 'INTERMEDIA', '5TA', '6TA', '7MA']
-
-    ramas_ocupadas = set(session.get('contextos', {}).keys())
-
-    if request.method == 'POST':
-        rama = request.form['rama'].upper()
-        club = request.form['club'].strip()
-        categoria = request.form['categoria'].upper()
-
-        if rama in ramas_ocupadas:
-            flash(f"Ya tenés un equipo registrado en {rama}. Solo podés elegir otro de la otra rama.", "danger")
-        else:
-            session.setdefault('contextos', {})[rama] = {
-                'club': club,
-                'categoria': categoria
-            }
-            flash(f"Contexto guardado: {rama} - {club} - {categoria}", "success")
-            return redirect(url_for('dashboard'))
-
-    ramas_habilitadas = [r for r in ramas if r not in ramas_ocupadas]
-
-    return render_template(
-        'seleccionar_contexto.html',
-        ramas=ramas_habilitadas,
-        categorias=categorias,
-        equipos=equipos
-    )
-
-@app.route('/agregar_equipo', methods=['GET', 'POST'])
-def agregar_equipo():
-    conn = get_fixtures_connection()
-    equipos_a = conn.execute("SELECT DISTINCT `Equipo A`, Rama FROM fixture").fetchall()
-    equipos_b = conn.execute("SELECT DISTINCT `Equipo B`, Rama FROM fixture").fetchall()
-    conn.close()
-
-    equipos = set([(row["Equipo A"], row["Rama"]) for row in equipos_a] + [(row["Equipo B"], row["Rama"]) for row in equipos_b])
-    categorias = ['PRIMERA', 'INTERMEDIA', '5TA', '6TA', '7MA']
-
-    error = None
-    if request.method == 'POST':
-        rama = request.form['rama']
-        club = request.form['club']
-        categoria = request.form['categoria']
-
-        clave = f"{rama}_{club}"
-        if clave in session['contextos']:
-            error = 'Ya tenés ese equipo cargado.'
-        else:
-            session['contextos'][clave] = {
-                'rama': rama,
-                'club': club,
-                'categoria': categoria
-            }
-            session['contexto_activo'] = session['contextos'][clave]
-            flash(f"Nuevo equipo agregado: {rama} - {club} - {categoria}", "success")
-            return redirect(url_for('dashboard'))
-
-    return render_template('agregar_equipo.html', equipos=equipos, categorias=categorias, error=error)
-
-@app.route('/set_equipo_activo', methods=['POST'])
-def set_equipo_activo():
-    seleccion = request.form['seleccion']
-    if seleccion in session['contextos']:
-        session['activo'] = (seleccion, session['contextos'][seleccion])
-    return redirect(url_for('dashboard'))
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
-
-@app.route('/')
-def index():
-    return redirect(url_for('login'))
+if __name__ == '__main__':
+    app.run(debug=True)
