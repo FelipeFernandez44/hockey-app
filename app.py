@@ -7,12 +7,7 @@ app.secret_key = 'tu_clave_secreta'
 
 # Conexión a PostgreSQL
 def get_postgres_connection():
-    conn = psycopg2.connect(
-        host="localhost",
-        database="Servidor Local",  # Reemplazá con el nombre real de tu base
-        user="postgres",
-        password="Ff44Sbhc"  # Reemplazá con tu password real
-    )
+    conn = psycopg2.connect("postgresql://postgres:Ff44Sbhc@dpg-abc123.render.com:5432/Servidor Local")
     return conn
 
 # Conexión al fixture (por ahora lo dejamos en SQLite)
