@@ -205,9 +205,14 @@ def dashboard():
     if not session.get('activo'):
         session['activo'] = next(iter(contextos.items()))
 
-    rama, data = session['activo']
-    equipo = data['club']
-    categoria = data['categoria']
+        rama, data = session['activo']
+        equipo = data.get('club')
+        categoria = data.get('categoria')
+
+        if not categoria:
+            flash("Seleccioná la categoría antes de continuar", "warning")
+            return redirect(url_for('seleccionar_contexto'))
+
 
     contexto = session['contexto_activo']
     equipo = contexto['club']
