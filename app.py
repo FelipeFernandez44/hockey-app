@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
+import os
 import psycopg2
 import sqlite3
 
@@ -6,9 +7,6 @@ app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta'
 
 # Conexión a PostgreSQL
-import os
-import psycopg2
-
 def get_postgres_connection():
     return psycopg2.connect(os.environ["DATABASE_URL"])
 
@@ -31,7 +29,6 @@ def guardar_usuario_db(dni, nombre, fecha_nac, email, password, club, rama, plan
             (dni, nombre, fecha_nac, email, password, club, rama, plan)
         )
         conn.commit()
-        print("✅ Usuario guardado correctamente.")
     except Exception as e:
         print(f"❌ ERROR al guardar usuario: {e}")
         raise
@@ -51,8 +48,61 @@ def buscar_usuario_db(dni, password=None):
         if user:
             desc = [desc[0] for desc in cursor.description]
             return dict(zip(desc, user))
-        else:
-            return None
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route("/initdb")
+def init_db():
+    conn = get_postgres_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id SERIAL PRIMARY KEY,
+                dni TEXT NOT NULL,
+                nombre TEXT NOT NULL,
+                fecha_nac TEXT NOT NULL,
+                email TEXT NOT NULL,
+                password TEXT NOT NULL,
+                club TEXT NOT NULL,
+                rama TEXT NOT NULL,
+                plan TEXT NOT NULL
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS jugadoras (
+                id SERIAL PRIMARY KEY,
+                nombre TEXT,
+                dni TEXT,
+                telefono TEXT,
+                fecha_nac TEXT,
+                numero INTEGER,
+                posicion TEXT,
+                categoria TEXT
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS entrenamientos (
+                id SERIAL PRIMARY KEY,
+                fecha TEXT,
+                categoria TEXT
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS asistencias (
+                id SERIAL PRIMARY KEY,
+                entrenamiento_id INTEGER REFERENCES entrenamientos(id),
+                jugadora_id INTEGER REFERENCES jugadoras(id),
+                presente BOOLEAN
+            )
+        ''')
+        conn.commit()
+        return "✅ Base de datos inicializada correctamente"
+    except Exception as e:
+        print("❌ Error al crear las tablas:", e)
+        return "❌ Error al crear las tablas"
     finally:
         cursor.close()
         conn.close()
@@ -92,7 +142,6 @@ def login():
     if request.method == 'POST':
         dni = request.form['dni']
         password = request.form['password']
-
         user = buscar_usuario_db(dni, password)
         if user:
             session['username'] = user['dni']
@@ -247,8 +296,7 @@ def agregar_equipo():
     equipos_b = conn.execute("SELECT DISTINCT `Equipo B`, Rama FROM fixture").fetchall()
     conn.close()
 
-    equipos = set([ (row["Equipo A"], row["Rama"]) for row in equipos_a ] + 
-                  [ (row["Equipo B"], row["Rama"]) for row in equipos_b ])
+    equipos = set([(row["Equipo A"], row["Rama"]) for row in equipos_a] + [(row["Equipo B"], row["Rama"]) for row in equipos_b])
     categorias = ['PRIMERA', 'INTERMEDIA', '5TA', '6TA', '7MA']
 
     error = None
