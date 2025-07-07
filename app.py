@@ -6,9 +6,11 @@ app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta'
 
 # Conexión a PostgreSQL
+import os
+import psycopg2
+
 def get_postgres_connection():
-    conn = psycopg2.connect("postgresql://postgres:Ff44Sbhc@dpg-abc123.render.com:5432/Servidor Local")
-    return conn
+    return psycopg2.connect(os.environ["DATABASE_URL"])
 
 # Conexión al fixture (por ahora lo dejamos en SQLite)
 def get_fixtures_connection():
