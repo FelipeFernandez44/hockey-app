@@ -22,7 +22,11 @@
         <div class="card">
           <div class="card-body">
             <h5 class="card-title">Próximo partido</h5>
+            {% if next_match %}
             <p class="card-text">vs {{ next_match.rival }}</p>
+            {% else %}
+            <p class="card-text">No hay próximo partido cargado</p>
+            {% endif %}
             <p class="card-text">Fecha: {{ next_match.fecha }}</p>
           </div>
         </div>
