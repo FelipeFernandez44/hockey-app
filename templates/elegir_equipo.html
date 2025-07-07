@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Elegir Equipo</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <div class="container mt-5">
+    <div class="card shadow">
+      <div class="card-body">
+        <h3 class="mb-4">Seleccioná el equipo con el que querés trabajar</h3>
+        <form method="POST" action="{{ url_for('set_equipo_activo') }}">
+          <div class="mb-3">
+            <select name="seleccion" class="form-select" required>
+              {% for rama, data in contextos.items() %}
+              <option value="{{ rama }}">{{ rama }} - {{ data.club }} - {{ data.categoria }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary">Continuar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

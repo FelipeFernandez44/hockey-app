@@ -4,27 +4,28 @@ from pathlib import Path
 # Crear carpeta si no existe
 Path("db").mkdir(exist_ok=True)
 
-# Crear DB
+# Conectarse a la base (si no existe, se crea)
 conn = sqlite3.connect("db/hockey.db")
 cursor = conn.cursor()
 
-# Tabla usuarios (sin apellido, bien limpia)
-cursor.execute("""
-CREATE TABLE usuarios (
+# Crear tabla usuarios
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS usuarios (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  dni TEXT UNIQUE NOT NULL,
+  dni TEXT NOT NULL,
   nombre TEXT NOT NULL,
   fecha_nac TEXT NOT NULL,
+  email TEXT NOT NULL,
   password TEXT NOT NULL,
   club TEXT NOT NULL,
   rama TEXT NOT NULL,
   plan TEXT NOT NULL
-  )
-""")
+)
+''')
 
-# Tabla jugadoras
-cursor.execute("""
-CREATE TABLE jugadoras (
+# Crear tabla jugadoras
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS jugadoras (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nombre TEXT,
   dni TEXT,
@@ -34,20 +35,20 @@ CREATE TABLE jugadoras (
   posicion TEXT,
   categoria TEXT
 )
-""")
+''')
 
-# Tabla entrenamientos
-cursor.execute("""
-CREATE TABLE entrenamientos (
+# Crear tabla entrenamientos
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS entrenamientos (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   fecha TEXT,
   categoria TEXT
 )
-""")
+''')
 
-# Tabla asistencias
-cursor.execute("""
-CREATE TABLE asistencias (
+# Crear tabla asistencias
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS asistencias (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   entrenamiento_id INTEGER,
   jugadora_id INTEGER,
@@ -55,9 +56,10 @@ CREATE TABLE asistencias (
   FOREIGN KEY (entrenamiento_id) REFERENCES entrenamientos(id),
   FOREIGN KEY (jugadora_id) REFERENCES jugadoras(id)
 )
-""")
+''')
 
+# Guardar y cerrar
 conn.commit()
 conn.close()
 
-print("✅ DB hockey.db creada correctamente.")
+print("✅ Base de datos creada con las tablas.")
