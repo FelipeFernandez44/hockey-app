@@ -209,5 +209,12 @@ def agregar_equipo():
 
     return render_template('agregar_equipo.html', equipos=equipos_filtrados, categorias=categorias, error=error)
 
+# Cerrar sesión
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+
 if __name__ == '__main__':
     app.run(debug=True)
