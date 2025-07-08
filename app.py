@@ -2,6 +2,7 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 import psycopg2
 from dotenv import load_dotenv
+import sqlite3
 
 # Cargar variables de entorno
 load_dotenv()
@@ -9,57 +10,25 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
 
-# Conexión a fixtures.db
+# Conexion PostgreSQL
+def conectar_db():
+    return psycopg2.connect(
+        host=os.getenv("DB_HOST"),
+        database=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        port=os.getenv("DB_PORT")
+    )
+
+# Conexion SQLite para fixtures
 def get_fixtures_connection():
-    import sqlite3
     conn = sqlite3.connect('data/fixtures.db')
     conn.row_factory = sqlite3.Row
     return conn
 
-# Función para conectar a la base de datos principal
-
-def conectar_db():
-    return psycopg2.connect(
-        host=os.getenv("DB_HOST", "dpg-d1m1cgripnbc73fifqa0-a"),
-        database=os.getenv("DB_NAME", "hockeyapp"),
-        user=os.getenv("DB_USER", "hockeyapp_user"),
-        password=os.getenv("DB_PASSWORD", "TU_PASSWORD_AQUI"),
-        port=os.getenv("DB_PORT", 5432)
-    )
-
 @app.route('/')
 def index():
     return redirect(url_for('login'))
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        dni = request.form['dni']
-        nombre = request.form['nombre']
-        fecha_nac = request.form['fecha_nac']
-        email = request.form['email']
-        password = request.form['password']
-        club = request.form['club']
-        rama = request.form['rama']
-        plan = request.form['plan']
-
-        conn = conectar_db()
-        cur = conn.cursor()
-        cur.execute('SELECT * FROM usuarios WHERE dni = %s', (dni,))
-        if cur.fetchone():
-            cur.close()
-            conn.close()
-            return 'Usuario ya registrado'
-
-        cur.execute('''INSERT INTO usuarios (dni, nombre, fecha_nac, email, password, club, rama, plan)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
-                    (dni, nombre, fecha_nac, email, password, club, rama, plan))
-        conn.commit()
-        cur.close()
-        conn.close()
-        return redirect(url_for('login'))
-
-    return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -76,17 +45,14 @@ def login():
 
         if user:
             session['user_id'] = user[0]
-            session['categoria'] = user[7] if len(user) > 7 else 'general'
+            session['categoria'] = user[8] if len(user) > 8 else 'general'
+            session['club'] = user[6]
+            session['rama'] = user[7]
             return redirect(url_for('dashboard'))
         else:
-            return 'Usuario o contraseña incorrectos'
+            flash('Usuario o contraseña incorrectos', 'danger')
 
     return render_template('login.html')
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
 
 @app.route('/dashboard')
 def dashboard():
@@ -94,11 +60,33 @@ def dashboard():
         return redirect(url_for('login'))
 
     categoria = session.get('categoria')
-    next_match = {}  # Acá podrías agregar lógica real
+    club = session.get('club')
+    rama = session.get('rama')
+
+    # Buscar próximo partido desde SQLite
+    conn = get_fixtures_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT * FROM fixture
+        WHERE `Equipo A` = ? AND Categoria = ? AND Rama = ?
+        ORDER BY Fecha ASC
+        LIMIT 1
+    """, (club, categoria, rama))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    next_match = {
+        'fecha': row['Fecha'],
+        'rival': row['Equipo B'],
+        'hora': row['Hora'],
+        'cancha': row['Cancha']
+    } if row else None
+
     return render_template('dashboard.html', categoria=categoria, next_match=next_match)
 
 @app.route('/jugadoras')
-def jugadoras():
+def ver_jugadoras():
     conn = conectar_db()
     cur = conn.cursor()
     cur.execute('SELECT * FROM jugadoras')
@@ -179,7 +167,7 @@ def agregar_equipo():
     equipos_b = conn.execute("SELECT DISTINCT `Equipo B`, Rama FROM fixture").fetchall()
     conn.close()
 
-    equipos_todos = set([ (row["Equipo A"].strip(), row["Rama"].strip()) for row in equipos_a + equipos_b ])
+    equipos_todos = set([ (row[0].strip(), row[1].strip()) for row in equipos_a + equipos_b ])
     categorias = ['PRIMERA', 'INTERMEDIA', '5TA', '6TA', '7MA']
     error = None
 
@@ -213,16 +201,18 @@ def agregar_equipo():
             if rama in ramas_registradas and club not in clubes_por_rama[rama]:
                 error = f"Ya tenés un equipo en {rama}. Solo podés agregar otra categoría del club {list(clubes_por_rama[rama])[0]}."
             else:
-                session['contextos'][clave] = {
-                    'rama': rama,
-                    'club': club,
-                    'categoria': categoria
-                }
-                session['contexto_activo'] = session['contextos'][clave]
+                contextos[clave] = {'rama': rama, 'club': club, 'categoria': categoria}
+                session['contextos'] = contextos
+                session['contexto_activo'] = contextos[clave]
                 flash(f"Nuevo equipo agregado: {rama} - {club} - {categoria}", "success")
                 return redirect(url_for('dashboard'))
 
     return render_template('agregar_equipo.html', equipos=equipos_filtrados, categorias=categorias, error=error)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(debug=True)
