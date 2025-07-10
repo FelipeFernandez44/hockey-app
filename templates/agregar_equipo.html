@@ -1,43 +1,70 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Agregar nuevo equipo</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='estilos.css') }}">
+  <meta charset="UTF-8">
+  <title>Agregar Equipo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-    <h1>Agregar nuevo equipo</h1>
+<body class="bg-light">
+  <div class="container mt-5">
+    <div class="card shadow p-4 mx-auto" style="max-width: 600px;">
+      <h3 class="text-center mb-4">📋 Agregar nuevo equipo</h3>
 
-    {% if error %}
-        <div class="error">{{ error }}</div>
-    {% endif %}
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} text-center">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
 
-    <form method="POST">
-        <label for="equipo">Seleccioná el equipo (club y rama):</label><br>
-        <select name="club" required>
-            {% for club, rama in equipos %}
-                <option value="{{ club }}">{{ club }} - {{ rama }}</option>
+      {% if error %}
+        <div class="alert alert-danger text-center">⚠️ {{ error }}</div>
+      {% endif %}
+
+      <form method="POST">
+        <div class="mb-3">
+          <label class="form-label">🏑 Club</label>
+          <select name="club" id="club-select" class="form-select" required>
+            <option value="">Seleccioná un club</option>
+            {% for club, rama in equipos|sort %}
+              <option value="{{ club }}">{{ club }}</option>
             {% endfor %}
-        </select><br><br>
+          </select>
+        </div>
 
-        <label for="rama">Rama:</label><br>
-        <select name="rama" required>
-            {% for _, rama in equipos|unique(attribute=1) %}
-                <option value="{{ rama }}">{{ rama }}</option>
-            {% endfor %}
-        </select><br><br>
+        <div class="mb-3">
+          <label class="form-label">👥 Rama</label>
+          <select name="rama" id="rama-select" class="form-select" required>
+            <option value="">Seleccioná una rama</option>
+            <option value="DAMAS">Damas</option>
+            <option value="CABALLEROS">Caballeros</option>
+          </select>
+        </div>
 
-        <label for="categoria">Categoría:</label><br>
-        <select name="categoria" required>
+        <div class="mb-4">
+          <label class="form-label">🎯 Categoría</label>
+          <select name="categoria" class="form-select" required>
+            <option value="">Seleccioná una categoría</option>
             {% for cat in categorias %}
-                <option value="{{ cat }}">{{ cat }}</option>
+              <option value="{{ cat }}">{{ cat|capitalize }}</option>
             {% endfor %}
-        </select><br><br>
+          </select>
+        </div>
 
-        <button type="submit">Agregar equipo</button>
-    </form>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-success">✅ Agregar equipo</button>
+          <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary mt-2">⬅️ Volver al Dashboard</a>
+        </div>
+      </form>
+    </div>
+  </div>
 
-    <br>
-    <a href="{{ url_for('dashboard') }}">← Volver al dashboard</a>
+  <script>
+    // Corrección para evitar error de serialización si no hay contextos
+    window.contextosData = {{ session.get("contextos") | default({}) | tojson | safe }};
+  </script>
+
 </body>
 </html>

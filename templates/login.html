@@ -18,16 +18,7 @@
           <label class="form-label">Contraseña</label>
           <input type="password" name="password" class="form-control" required>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Categoría que entrena</label>
-          <select name="categoria" class="form-select" required>
-            <option value="PRIMERA">Primera</option>
-            <option value="INTERMEDIA">Intermedia</option>
-            <option value="5TA">5ta</option>
-            <option value="6TA">6ta</option>
-            <option value="7MA">7ma</option>
-          </select>
-        </div>
+
         {% if error %}
         <div class="alert alert-danger">{{ error }}</div>
         {% endif %}

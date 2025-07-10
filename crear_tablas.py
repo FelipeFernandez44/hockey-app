@@ -1,6 +1,6 @@
-from dotenv import load_dotenv
 import psycopg2
 import os
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -13,23 +13,21 @@ def crear_tablas_si_no_existen():
             password=os.getenv("DB_PASSWORD"),
             port=os.getenv("DB_PORT", 5432)
         )
-
         cursor = conn.cursor()
 
         cursor.execute("""
-    CREATE TABLE IF NOT EXISTS usuarios (
-        id SERIAL PRIMARY KEY,
-        dni TEXT NOT NULL UNIQUE,
-        nombre TEXT NOT NULL,
-        fecha_nac DATE NOT NULL,
-        email TEXT NOT NULL,
-        password TEXT NOT NULL,
-        club TEXT NOT NULL,
-        rama TEXT NOT NULL,
-        plan TEXT NOT NULL
-    );
-""")
-
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id SERIAL PRIMARY KEY,
+            dni TEXT NOT NULL UNIQUE,
+            nombre TEXT NOT NULL,
+            fecha_nac DATE NOT NULL,
+            email TEXT NOT NULL,
+            password TEXT NOT NULL,
+            club TEXT NOT NULL,
+            rama TEXT NOT NULL,
+            plan TEXT NOT NULL
+        );
+    """)
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS jugadoras (
